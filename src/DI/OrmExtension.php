@@ -139,26 +139,32 @@ final class OrmExtension extends CompilerExtension
 			throw new InvalidStateException(sprintf('EntityManagerDecorator class "%s" not found', $entityManagerDecoratorClass));
 		}
 
-		// Entity Manager
-		$original = $builder->addDefinition($this->prefix('entityManager'))
-			->setType(DoctrineEntityManager::class)
-			->setFactory(DoctrineEntityManager::class . '::create', [
-				$builder->getDefinitionByType(Connection::class), // Nettrine/DBAL
-				$this->prefix('@configuration'),
-			])
-			->setAutowired(false);
+		foreach ($builder->findByType(Connection::class) as $definitionName => $serviceDefinition) {
+			// Entity Manager
+			$original = $builder->addDefinition($this->prefix($definitionName . '.entityManager'))
+				->setType(DoctrineEntityManager::class)
+				->setFactory(DoctrineEntityManager::class . '::create', [
+					$builder->getDefinition($definitionName), // Nettrine/DBAL
+					$this->prefix('@configuration'),
+				])
+				->setAutowired(false);
 
-		// Entity Manager Decorator
-		$builder->addDefinition($this->prefix('entityManagerDecorator'))
-			->setFactory($entityManagerDecoratorClass, [$original]);
+			$autowired = $serviceDefinition->isAutowired();
 
-		// ManagerRegistry
-		$builder->addDefinition($this->prefix('managerRegistry'))
-			->setType(ManagerRegistry::class)
-			->setArguments([
-				$builder->getDefinitionByType(Connection::class),
-				$this->prefix('@entityManagerDecorator'),
-			]);
+			// Entity Manager Decorator
+			$builder->addDefinition($this->prefix($definitionName . '.entityManagerDecorator'))
+				->setFactory($entityManagerDecoratorClass, [$original])
+				->setAutowired($autowired);
+
+			// ManagerRegistry
+			$builder->addDefinition($this->prefix($definitionName . '.managerRegistry'))
+				->setType(ManagerRegistry::class)
+				->setArguments([
+					$builder->getDefinition($definitionName),
+					$this->prefix('@' . $definitionName . '.entityManagerDecorator'),
+				])
+				->setAutowired($autowired);
+		}
 	}
 
 }
