@@ -11,6 +11,6 @@ indent_style = tab
 indent_size = tab
 tab_width = 4
 
-[{*.json,*.yml,*.yaml,*.md}]
+[{*.json,*.yml,*.yaml,*.md,*.js,*.ts}]
 indent_style = space
 indent_size = 2
